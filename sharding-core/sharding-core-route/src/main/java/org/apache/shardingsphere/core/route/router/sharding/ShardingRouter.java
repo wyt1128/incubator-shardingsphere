@@ -60,15 +60,15 @@ import java.util.List;
  */
 @RequiredArgsConstructor
 public final class ShardingRouter {
-    
+
     private final ShardingRule shardingRule;
-    
+
     private final ShardingSphereMetaData metaData;
-    
+
     private final SQLParseEngine parseEngine;
-    
+
     private final List<Comparable<?>> generatedValues = new LinkedList<>();
-    
+
     /**
      * Parse SQL.
      *
@@ -79,7 +79,7 @@ public final class ShardingRouter {
     public SQLStatement parse(final String logicSQL, final boolean useCache) {
         return parseEngine.parse(logicSQL, useCache);
     }
-    
+
     /**
      * Route SQL.
      *
@@ -106,7 +106,7 @@ public final class ShardingRouter {
         RoutingEngine routingEngine = RoutingEngineFactory.newInstance(shardingRule, metaData, sqlStatementContext, shardingConditions);
         RoutingResult routingResult = routingEngine.route();
         if (needMergeShardingValues) {
-            Preconditions.checkState(1 == routingResult.getRoutingUnits().size(), "Must have one sharding with subquery.");
+            Preconditions.checkState(1 <= routingResult.getRoutingUnits().size(), "Must have one sharding with subquery.");
         }
         SQLRouteResult result = new SQLRouteResult(sqlStatementContext, shardingConditions, generatedKey.orNull());
         result.setRoutingResult(routingResult);
@@ -115,7 +115,7 @@ public final class ShardingRouter {
         }
         return result;
     }
-    
+
     private ShardingConditions getShardingConditions(final List<Object> parameters, final SQLStatementContext sqlStatementContext, final GeneratedKey generatedKey) {
         if (sqlStatementContext.getSqlStatement() instanceof DMLStatement) {
             if (sqlStatementContext instanceof InsertSQLStatementContext) {
@@ -126,12 +126,12 @@ public final class ShardingRouter {
         }
         return new ShardingConditions(Collections.<ShardingCondition>emptyList());
     }
-    
+
     private boolean isNeedMergeShardingValues(final SQLStatementContext sqlStatementContext) {
-        return sqlStatementContext instanceof SelectSQLStatementContext && ((SelectSQLStatementContext) sqlStatementContext).isContainsSubquery() 
+        return sqlStatementContext instanceof SelectSQLStatementContext && ((SelectSQLStatementContext) sqlStatementContext).isContainsSubquery()
                 && !shardingRule.getShardingLogicTableNames(sqlStatementContext.getTablesContext().getTableNames()).isEmpty();
     }
-    
+
     private void checkSubqueryShardingValues(final SQLStatementContext sqlStatementContext, final ShardingConditions shardingConditions) {
         for (String each : sqlStatementContext.getTablesContext().getTableNames()) {
             Optional<TableRule> tableRule = shardingRule.findTableRule(each);
@@ -145,7 +145,7 @@ public final class ShardingRouter {
             Preconditions.checkState(isSameShardingCondition(shardingConditions), "Sharding value must same with subquery.");
         }
     }
-    
+
     private boolean isSameShardingCondition(final ShardingConditions shardingConditions) {
         ShardingCondition example = shardingConditions.getConditions().remove(shardingConditions.getConditions().size() - 1);
         for (ShardingCondition each : shardingConditions.getConditions()) {
@@ -155,7 +155,7 @@ public final class ShardingRouter {
         }
         return true;
     }
-    
+
     private boolean isSameShardingCondition(final ShardingCondition shardingCondition1, final ShardingCondition shardingCondition2) {
         if (shardingCondition1.getRouteValues().size() != shardingCondition2.getRouteValues().size()) {
             return false;
@@ -169,21 +169,21 @@ public final class ShardingRouter {
         }
         return true;
     }
-    
+
     private boolean isSameRouteValue(final ListRouteValue routeValue1, final ListRouteValue routeValue2) {
         return isSameLogicTable(routeValue1, routeValue2)
                 && routeValue1.getColumnName().equals(routeValue2.getColumnName()) && routeValue1.getValues().equals(routeValue2.getValues());
     }
-    
+
     private boolean isSameLogicTable(final ListRouteValue shardingValue1, final ListRouteValue shardingValue2) {
         return shardingValue1.getTableName().equals(shardingValue2.getTableName()) || isBindingTable(shardingValue1, shardingValue2);
     }
-    
+
     private boolean isBindingTable(final ListRouteValue shardingValue1, final ListRouteValue shardingValue2) {
         Optional<BindingTableRule> bindingRule = shardingRule.findBindingTableRule(shardingValue1.getTableName());
         return bindingRule.isPresent() && bindingRule.get().hasLogicTable(shardingValue2.getTableName());
     }
-    
+
     private void mergeShardingConditions(final ShardingConditions shardingConditions) {
         if (shardingConditions.getConditions().size() > 1) {
             ShardingCondition shardingCondition = shardingConditions.getConditions().remove(shardingConditions.getConditions().size() - 1);
@@ -191,7 +191,7 @@ public final class ShardingRouter {
             shardingConditions.getConditions().add(shardingCondition);
         }
     }
-    
+
     private void setGeneratedValues(final SQLRouteResult sqlRouteResult) {
         if (sqlRouteResult.getGeneratedKey().isPresent()) {
             generatedValues.addAll(sqlRouteResult.getGeneratedKey().get().getGeneratedValues());

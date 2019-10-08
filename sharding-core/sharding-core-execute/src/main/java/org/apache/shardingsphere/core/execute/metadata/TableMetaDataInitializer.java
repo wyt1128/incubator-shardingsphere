@@ -116,7 +116,11 @@ public final class TableMetaDataInitializer {
     }
     
     private String getCurrentSchemaName(final Connection connection) throws SQLException {
+        String databaseTypeName = this.dataSourceMetas.getDatabaseType().getName();
         try {
+            if ("Oracle".equalsIgnoreCase(databaseTypeName)) {
+                return connection.getMetaData().getUserName().toUpperCase();
+            }
             return connection.getSchema();
         } catch (final AbstractMethodError | SQLFeatureNotSupportedException ignore) {
             return null;
